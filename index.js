@@ -75,7 +75,7 @@ async function run() {
           const day = date.toLocaleString()
           const day_date = date.toDateString()
           
-
+// lll
           const paymentData = {
             data,
             transection_id : trans_id,
