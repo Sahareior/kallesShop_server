@@ -3,7 +3,7 @@ const cors = require('cors')
 const SSLCommerzPayment = require('sslcommerz-lts')
 const app = express()
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: 'https://kallesshop.netlify.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // Allow credentials
