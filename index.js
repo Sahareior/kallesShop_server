@@ -111,7 +111,7 @@ async function run() {
       console.log(trans_id, result);
 
       if (result.modifiedCount > 0) {
-        res.redirect(`http://localhost:5173/payments/success/${trans_id}`);
+        res.redirect(`https://kallesshop.netlify.app/payments/success/${trans_id}`);
       } else {
         res.status(404).send('Transaction not found or not updated');
       }
