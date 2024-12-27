@@ -3,7 +3,7 @@ const cors = require('cors')
 const SSLCommerzPayment = require('sslcommerz-lts')
 const app = express()
 const corsOptions = {
-  origin: 'https://kallesshop.netlify.app',
+  origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // Allow credentials
@@ -32,23 +32,23 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+     client.connect();
     const productsCollections = client.db("Cloth-Store").collection("All-Products");
     const orderCollections = client.db("Cloth-Store").collection("Orders");
 
     app.post('/payments', async (req, res) => {
-      const { body } = req;
-      const items = body;
-      const { phone } = body;
-      const trans_id = new ObjectId().toString();
+      const body = req.body
+     const items = req.body
+     const phone = req.body.phone
+     const trans_id= new ObjectId().toString()
       const data = {
         total_amount: body.total,
         currency: 'BDT',
-        tran_id: trans_id,
-        success_url: `https://kallesshopserver-production.up.railway.app/payments/success/${trans_id}`,
-        fail_url: 'https://kallesshopserver-production.up.railway.app/fail',
-        cancel_url: 'https://kallesshopserver-production.up.railway.app/cancel',
-        ipn_url: 'https://kallesshopserver-production.up.railway.app/ipn',
+        tran_id: trans_id, // use unique tran_id for each api call
+        success_url: ` https://kellas.vercel.app/payments/success/${trans_id}`,
+        fail_url: 'http://localhost:3030/fail',
+        cancel_url: 'http://localhost:3030/cancel',
+        ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
         product_name: 'Computer.',
         product_category: 'Electronic',
@@ -70,52 +70,48 @@ async function run() {
         ship_state: 'Dhaka',
         ship_postcode: 1000,
         ship_country: 'Bangladesh',
-      };
+    };
     
-      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
-      sslcz.init(data).then(async apiResponse => {
-        const GatewayPageURL = apiResponse.GatewayPageURL;
-        res.send({ url: GatewayPageURL });
-    
-        const date = new Date();
-        const day = date.toLocaleString();
-        const day_date = date.toDateString();
-    
-        const paymentData = {
-          data,
-          transection_id: trans_id,
-          paid: false,
-          orderdItem: items,
-          orderdTime: day,
-          orderDate: day_date,
-        };
-    
-        try {
-          const result = await orderCollections.insertOne(paymentData);
-        } catch (error) {
-          console.error('Error inserting payment data:', error);
-        }
-      }).catch(error => {
-        console.error('Error initializing SSLCommerz:', error);
-        res.status(500).send('An error occurred');
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+      sslcz.init(data).then(apiResponse => {
+          // Redirect the user to payment gateway
+          let GatewayPageURL = apiResponse.GatewayPageURL
+          res.send({url:GatewayPageURL})
+          const date = new Date()
+          const day = date.toLocaleString()
+          const day_date = date.toDateString()
+          
+// lll
+          const paymentData = {
+            data,
+            transection_id : trans_id,
+            paid: false,
+            orderdItem: items,
+            orderdTime: day,
+            orderDate: day_date
+          }
+console.log(paymentData)
+          const result =  orderCollections.insertOne(paymentData)
+          
       });
-    });
+      
+  })
 
-    app.post('/payments/success/:transID', async (req, res) => {
-      console.log('Payment success endpoint hit');
-      const trans_id = req.params.transID;
-      const result = await orderCollections.updateOne(
-        { transection_id: trans_id },
-        { $set: { paid: true } }
-      );
-      console.log(trans_id, result);
+  app.post('/payments/success/:transID', async (req, res) => {
+    const trans_id = req.params.transID;
+    const result = await orderCollections.updateOne(
+  { transection_id: trans_id},
+  {
+    $set:{paid:true}
+  }
+)
 
-      if (result.modifiedCount > 0) {
-        res.redirect(`https://kallesshop.netlify.app/payments/success/${trans_id}`);
-      } else {
-        res.status(404).send('Transaction not found or not updated');
-      }
-    });
+if(result.modifiedCount>0){
+  res.redirect(`https://kallesshop.netlify.app/payments/success/${trans_id}`);
+}
+
+
+  });
 
     app.get('/orders', async (req, res) => {
       const { date } = req.query;
